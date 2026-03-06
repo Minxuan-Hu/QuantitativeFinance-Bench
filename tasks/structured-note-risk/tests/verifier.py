@@ -250,7 +250,10 @@ def check_intermediates(
             agent_value = entry.get("value")
         elif isinstance(entry, (int, float)):
             agent_value = entry  # flat numeric value
-            agent_value = entry
+            elif isinstance(entry, (int, float)):
+                agent_value = entry  # flat numeric value
+            else:
+                continue  # skip entries that are neither dict nor numeric
         else:
             continue  # skip entries that are neither dict nor numeric
             continue  # skip entries that are neither dict nor numeric
