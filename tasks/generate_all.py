@@ -1256,7 +1256,6 @@ def solve_sentiment(prices_data=None, dates=None, tickers=None,
     alpha_daily = float(intercept)
     beta = float(slope)
     r_squared = float(r_value ** 2)
-    r_squared = float(r_value ** 2)
     alpha_ann = alpha_daily * 252  # simple multiplication (primary)
     alpha_ann_compound = (1 + alpha_daily) ** 252 - 1  # compound (alt)
 
