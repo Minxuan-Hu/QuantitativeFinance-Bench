@@ -248,8 +248,8 @@ def check_intermediates(
         # Accept both {"value": x} dicts and flat numeric values
         if isinstance(entry, dict):
             agent_value = entry.get("value")
-        if isinstance(entry, dict):
-            agent_value = entry.get("value")
+        elif isinstance(entry, (int, float)):
+            agent_value = entry  # flat numeric value
         elif isinstance(entry, (int, float)):
             agent_value = entry  # flat numeric value
         else:
