@@ -85,24 +85,23 @@ jobs:
 
       # --- SSH setup ---
       - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" | base64 -d > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add server to known hosts
+        run: ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
       # --- Copy script & run on server ---
       - name: Copy test script to server
         run: |
-          scp -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=yes \
+          scp -o StrictHostKeyChecking=yes \
             .github/scripts/test_on_server.py \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/test_on_server.py
 
       - name: Run tests on deployment server
         run: |
-          ssh -i ~/.ssh/deploy_key \
+          ssh \
             -o ServerAliveInterval=30 \
             -o ServerAliveCountMax=10 \
             -o StrictHostKeyChecking=yes \
@@ -116,8 +115,7 @@ jobs:
       - name: Fetch results from server
         if: always()
         run: |
-          scp -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=yes \
+          scp -o StrictHostKeyChecking=yes \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/test_deploy_results.json \
             /tmp/results.json 2>/dev/null || echo '{"status":"error","error":"Failed to fetch results from server"}' > /tmp/results.json
 
@@ -236,4 +234,4 @@ jobs:
 
       - name: Cleanup SSH key
         if: always()
-        run: rm -f ~/.ssh/deploy_key
+        run: rm -f ~/.ssh/id_* 2>/dev/null || true
