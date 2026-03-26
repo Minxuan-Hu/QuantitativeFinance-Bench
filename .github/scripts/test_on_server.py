@@ -353,4 +353,15 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception as exc:
+        import traceback
+        RESULTS_FILE.write_text(json.dumps({
+            "status": "error",
+            "error": f"Unhandled exception: {exc}",
+            "details": traceback.format_exc(),
+        }, indent=2))
+        sys.exit(1)
