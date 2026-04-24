@@ -1,8 +1,8 @@
 # 13F Amendment-Aware Crowding, Overlap, and Turnover
 
-You are given a small slice of SEC **Form 13F flat-file data**. Reconstruct each target manager's **effective long-share portfolio** for each target quarter after accounting for applicable amendments, then produce the required portfolio analytics.
+You are given a small slice of SEC **Form 13F flat-file data**. Reconstruct each target manager's effective long-share portfolio for each target quarter after accounting for applicable amendments, then produce the required portfolio analytics.
 
-This is a filing-reconstruction task. The main challenge is to get the effective portfolio state right.
+This is a filing-reconstruction task. The main challenge is to recover the economically effective portfolio state for each manager-period from the filing history.
 
 ## Files
 
@@ -24,29 +24,21 @@ The SEC files are tab-delimited. The helper files are comma-delimited.
 
 Use `target_managers.csv` and `target_periods.csv` as the exact manager-period universe.
 
-Work only with actual holdings reports: `13F-HR` and `13F-HR/A` filings whose report type is `13F HOLDINGS REPORT`.
+Work only with actual holdings reports: `13F-HR` and `13F-HR/A` filings whose report type is `13F HOLDINGS REPORT`. Exclude notices and other non-holdings filings.
 
-For eligible filings, the report-period fields in the SEC tables should agree. Filing-level `INFOTABLE.tsv` row counts and value totals should agree with `SUMMARYPAGE.tsv`; use an absolute tolerance of `5` on the value-total check.
+For eligible filings, the report-period fields in the SEC tables should be mutually consistent, and filing-level holdings totals should reconcile sensibly with the summary-page data.
 
-For each `(CIK, period_end)`, reconstruct the effective filing state in chronological order. Use filing date first, then amendment number, then accession number to break ties. A non-amendment filing starts the state, a `RESTATEMENT` amendment replaces it, and a `NEW HOLDINGS` amendment appends to it.
+For each `(CIK, period_end)`, reconstruct the effective filing state from the relevant filing history, taking amendments into account.
 
-Build the final long-share book from the effective state. Keep standard long equity rows only: nonblank `CUSIP`, share positions (`SSHPRNAMTTYPE == "SH"`), no `PUTCALL`, positive `VALUE`, and positive `SSHPRNAMT`. For the cleaning audit, count each rejected row once in the first exclusion bucket it hits.
+From that effective state, build the cleaned long-only holdings book for each manager-period. Use a consistent treatment of amendments, duplicate positions, canonical issuer/class labels, and non-eligible rows. The cleaning audit should count each rejected raw row once.
 
-Aggregate to one cleaned position per `(manager, period, CUSIP)`. Within each manager-period, compute portfolio weights as `VALUE / total_manager_value`.
-
-Then compute:
+From the resulting effective books, compute:
 - manager-level concentration metrics,
-- consecutive-period turnover using the `target_periods.csv` order,
+- consecutive-period turnover using the order in `target_periods.csv`,
 - latest-period pairwise overlap across managers,
 - latest-period security crowding.
 
-Use these definitions:
-- `hhi = sum(weight^2)`
-- `effective_num_names = 1 / hhi`
-- `turnover = 0.5 * sum(abs(w_curr - w_prev))` on the union of prior/current CUSIPs
-- `weighted_overlap = sum(min(w_i, w_j))` on the union of CUSIPs for each unordered manager pair
-
-For grouped issuer/class labels, use a deterministic canonical label. For `filing_resolution.csv`, the `action` field must be one of:
+For `filing_resolution.csv`, the `action` field must be one of:
 - `replace_initial`
 - `replace_restatement`
 - `append_new_holdings`
@@ -55,7 +47,7 @@ For grouped issuer/class labels, use a deterministic canonical label. For `filin
 
 Write everything to `/app/output/`.
 
-Use the required filenames, columns, and JSON keys. The verifier is semantic rather than byte-exact: harmless differences in CSV row order, JSON key order, numeric print precision, blank vs null, and unambiguous list/pair encodings are acceptable.
+Use the required filenames, columns, and JSON keys. The verifier is semantic rather than byte-exact: harmless differences in CSV row order, JSON key order, numeric print precision, blank vs null, non-amendment display conventions, representative issuer/class label choice, and unambiguous list/pair encodings are acceptable.
 
 ### `filing_resolution.csv`
 One row per filing applied during amendment resolution.
